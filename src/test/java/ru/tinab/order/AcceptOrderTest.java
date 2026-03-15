@@ -3,6 +3,7 @@ package ru.tinab.order;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Step;
+import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.Before;
@@ -10,13 +11,14 @@ import org.junit.Test;
 import ru.tinab.utils.Constants;
 
 import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.Matchers.equalTo;
 
 @Epic("Тестирование ручки принятия заказа")
 public class AcceptOrderTest {
 
-    private int existingOrderId = 1; // здесь можно поставить реальный существующий id заказа
-    private int existingCourierId = 1; // здесь можно поставить реальный id курьера
+    private int existingOrderId = 1;
+    private int existingCourierId = 1;
     private int nonExistentOrderId = 999999;
     private int nonExistentCourierId = 999999;
 
@@ -26,47 +28,67 @@ public class AcceptOrderTest {
     }
 
     @Test
-    @Description("Успешное принятие заказа")
-    public void acceptOrderSuccessfully() {
+    @DisplayName("Успешное принятие заказа")
+    @Description("Проверка успешного принятия заказа курьером")
+    public void acceptOrderSuccessfullyTest() {
+
         Response response = acceptOrder(existingOrderId, existingCourierId);
-        response.then().statusCode(200)
+
+        response.then()
+                .statusCode(SC_OK)
                 .body("ok", equalTo(true));
     }
 
     @Test
-    @Description("Запрос без id заказа")
-    public void acceptOrderWithoutOrderId() {
+    @DisplayName("Запрос без id заказа")
+    @Description("Проверка ошибки при отсутствии id заказа")
+    public void acceptOrderWithoutOrderIdTest() {
+
         Response response = given()
                 .contentType("application/json")
                 .queryParam("courierId", existingCourierId)
-                .put(Constants.ACCEPT_ORDER + ""); // пустой id
-        response.then().statusCode(400)
+                .put(Constants.ACCEPT_ORDER + "");
+
+        response.then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", equalTo("Недостаточно данных для поиска"));
     }
 
     @Test
-    @Description("Запрос с несуществующим id заказа")
-    public void acceptOrderWithNonExistentOrderId() {
+    @DisplayName("Запрос с несуществующим id заказа")
+    @Description("Проверка ошибки при использовании несуществующего id заказа")
+    public void acceptOrderWithNonExistentOrderIdTest() {
+
         Response response = acceptOrder(nonExistentOrderId, existingCourierId);
-        response.then().statusCode(404)
+
+        response.then()
+                .statusCode(SC_NOT_FOUND)
                 .body("message", equalTo("Заказа с таким id не существует"));
     }
 
     @Test
-    @Description("Запрос с несуществующим id курьера")
-    public void acceptOrderWithNonExistentCourierId() {
+    @DisplayName("Запрос с несуществующим id курьера")
+    @Description("Проверка ошибки при использовании несуществующего id курьера")
+    public void acceptOrderWithNonExistentCourierIdTest() {
+
         Response response = acceptOrder(existingOrderId, nonExistentCourierId);
-        response.then().statusCode(404)
+
+        response.then()
+                .statusCode(SC_NOT_FOUND)
                 .body("message", equalTo("Курьера с таким id не существует"));
     }
 
     @Test
-    @Description("Запрос без id курьера")
-    public void acceptOrderWithoutCourierId() {
+    @DisplayName("Запрос без id курьера")
+    @Description("Проверка ошибки при отсутствии id курьера")
+    public void acceptOrderWithoutCourierIdTest() {
+
         Response response = given()
                 .contentType("application/json")
                 .put(Constants.ACCEPT_ORDER + existingOrderId);
-        response.then().statusCode(400)
+
+        response.then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", equalTo("Недостаточно данных для поиска"));
     }
 

@@ -3,6 +3,7 @@ package ru.tinab.courier;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Step;
+import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.After;
@@ -14,6 +15,7 @@ import ru.tinab.model.CourierLogin;
 import ru.tinab.utils.Constants;
 import ru.tinab.utils.CourierGenerator;
 
+import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 
@@ -32,57 +34,73 @@ public class CreateCourierTest {
     }
 
     @Test
+    @DisplayName("Курьер может быть создан")
     @Description("Проверка, что курьера можно создать")
-    public void courierCanBeCreated() {
+    public void courierCanBeCreatedTest() {
+
         Response response = createCourierStep(courier);
 
-        response.then().statusCode(201)
+        response.then()
+                .statusCode(SC_CREATED)
                 .body("ok", equalTo(true));
-
-        courierId = getCourierIdStep(courier); // здесь падаем, если что-то не так
     }
 
     @Test
+    @DisplayName("Нельзя создать двух одинаковых курьеров")
     @Description("Проверка, что нельзя создать двух одинаковых курьеров")
-    public void cannotCreateDuplicateCourier() {
-        // первый раз создаём
-        Response firstResponse = createCourierStep(courier);
-        firstResponse.then().statusCode(201)
-                .body("ok", equalTo(true));
-        courierId = getCourierIdStep(courier);
+    public void cannotCreateDuplicateCourierTest() {
 
-        // второй раз — дубликат
+        Response firstResponse = createCourierStep(courier);
+
+        firstResponse.then()
+                .statusCode(SC_CREATED)
+                .body("ok", equalTo(true));
+
         Response secondResponse = createCourierStep(courier);
-        secondResponse.then().statusCode(409)
+
+        secondResponse.then()
+                .statusCode(SC_CONFLICT)
                 .body("message", equalTo("Этот логин уже используется"));
     }
 
     @Test
+    @DisplayName("Нельзя создать курьера без логина")
     @Description("Проверка, что нельзя создать курьера без логина")
-    public void cannotCreateCourierWithoutLogin() {
+    public void cannotCreateCourierWithoutLoginTest() {
+
         Courier courierWithoutLogin = new Courier(null, "1234", "Test");
 
         createCourierStep(courierWithoutLogin)
-                .then().statusCode(400)
+                .then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
 
     @Test
+    @DisplayName("Нельзя создать курьера без пароля")
     @Description("Проверка, что нельзя создать курьера без пароля")
-    public void cannotCreateCourierWithoutPassword() {
+    public void cannotCreateCourierWithoutPasswordTest() {
+
         String login = "test_" + System.currentTimeMillis();
         Courier courierWithoutPassword = new Courier(login, null, "Test");
 
         createCourierStep(courierWithoutPassword)
-                .then().statusCode(400)
+                .then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
 
     @After
     public void tearDown() {
-        if (courierId != null) {
-            deleteCourierStepSafe(courierId);
-        }
+
+        try {
+            courierId = getCourierIdStep(courier);
+
+            if (courierId != null) {
+                deleteCourierStepSafe(courierId);
+            }
+
+        } catch (Exception ignored) {}
     }
 
     // ---------------------- Шаги для Allure ----------------------
@@ -94,16 +112,20 @@ public class CreateCourierTest {
 
     @Step("Получение id курьера: {courier.login}")
     private Integer getCourierIdStep(Courier courier) {
+
         CourierLogin login = new CourierLogin(courier.getLogin(), courier.getPassword());
+
         Response loginResponse = courierClient.loginCourier(login);
-        assertEquals(200, loginResponse.statusCode());
+
+        assertEquals(SC_OK, loginResponse.statusCode());
+
         return loginResponse.jsonPath().getInt("id");
     }
 
     @Step("Мягкое удаление курьера с id: {id}")
     private void deleteCourierStepSafe(Integer id) {
         try {
-            Response response = courierClient.deleteCourier(id);
+            courierClient.deleteCourier(id);
         } catch (Exception ignored) {}
     }
 }

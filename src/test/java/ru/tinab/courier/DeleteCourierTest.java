@@ -15,6 +15,7 @@ import ru.tinab.utils.Constants;
 import ru.tinab.utils.CourierGenerator;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.apache.http.HttpStatus.*;
 import static org.junit.Assert.assertEquals;
 
 @Epic("Тестирование ручки удаления курьера")
@@ -29,35 +30,76 @@ public class DeleteCourierTest {
         RestAssured.baseURI = Constants.BASE_URL;
         courierClient = new CourierClient();
         courier = CourierGenerator.randomCourier();
+
         Response response = createCourierStep(courier);
-        response.then().statusCode(201).body("ok", equalTo(true));
+        response.then()
+                .statusCode(SC_CREATED)
+                .body("ok", equalTo(true));
+
         courierId = getCourierIdStep(courier);
     }
 
     @Test
-    @Description("Успешное удаление курьера")
-    public void deleteCourierSuccessfully() {
+    @Description("Проверка, что курьер может быть успешно удалён")
+    public void deleteCourierSuccessfullyTest() {
+
         Response response = deleteCourierStep(courierId);
-        response.then().statusCode(200)
+
+        response.then()
+                .statusCode(SC_OK)
                 .body("ok", equalTo(true));
+
         courierId = null;
     }
 
     @Test
-    @Description("Попытка удаления курьера без id")
-    public void deleteCourierWithoutId() {
+    @Description("Проверка, что нельзя удалить курьера без передачи id")
+    public void deleteCourierWithoutIdTest() {
+
         Response response = givenDeleteWithoutId();
-        response.then().statusCode(400)
+
+        response.then()
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", equalTo("Недостаточно данных для удаления курьера"));
     }
 
     @Test
-    @Description("Попытка удаления курьера с несуществующим id")
-    public void deleteCourierNonExistentId() {
+    @Description("Проверка удаления курьера с несуществующим id")
+    public void deleteCourierNonExistentIdTest() {
+
         int fakeId = 999999;
+
         Response response = deleteCourierStep(fakeId);
-        response.then().statusCode(404)
+
+        response.then()
+                .statusCode(SC_NOT_FOUND)
                 .body("message", equalTo("Курьера с таким id нет"));
+    }
+
+    @Test
+    @Description("Проверка, что авторизация без пароля невозможна")
+    public void loginCourierWithoutPasswordTest() {
+
+        CourierLogin login = new CourierLogin(courier.getLogin(), null);
+
+        Response response = courierClient.loginCourier(login);
+
+        response.then()
+                .statusCode(SC_BAD_REQUEST)
+                .body("message", equalTo("Недостаточно данных для входа"));
+    }
+
+    @Test
+    @Description("Проверка, что авторизация с неверным паролем невозможна")
+    public void loginCourierWithWrongPasswordTest() {
+
+        CourierLogin login = new CourierLogin(courier.getLogin(), "wrongPassword");
+
+        Response response = courierClient.loginCourier(login);
+
+        response.then()
+                .statusCode(SC_NOT_FOUND)
+                .body("message", equalTo("Учетная запись не найдена"));
     }
 
     @After
@@ -67,7 +109,7 @@ public class DeleteCourierTest {
         }
     }
 
-    // ---------------------- Шаги для Allure ----------------------
+    // ---------------------- Шаги Allure ----------------------
 
     @Step("Создание курьера: {courier.login}")
     private Response createCourierStep(Courier courier) {
@@ -76,9 +118,13 @@ public class DeleteCourierTest {
 
     @Step("Получение id курьера: {courier.login}")
     private Integer getCourierIdStep(Courier courier) {
+
         CourierLogin login = new CourierLogin(courier.getLogin(), courier.getPassword());
+
         Response loginResponse = courierClient.loginCourier(login);
-        assertEquals(200, loginResponse.statusCode());
+
+        assertEquals(SC_OK, loginResponse.statusCode());
+
         return loginResponse.jsonPath().getInt("id");
     }
 
@@ -89,7 +135,7 @@ public class DeleteCourierTest {
 
     @Step("Удаление курьера без id")
     private Response givenDeleteWithoutId() {
-        return io.restassured.RestAssured.given()
+        return RestAssured.given()
                 .contentType("application/json")
                 .body("{}")
                 .delete(Constants.DELETE_COURIER);
@@ -99,6 +145,7 @@ public class DeleteCourierTest {
     private void deleteCourierStepSafe(Integer id) {
         try {
             courierClient.deleteCourier(id);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 }
