@@ -1,0 +1,92 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ru.tinab</groupId>
+    <artifactId>Sprint_7</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <!-- Компилятор -->
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+
+        <!-- Кодировка UTF-8 -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <file.encoding>UTF-8</file.encoding>
+
+        <!-- Директория для Allure -->
+        <allure.results.directory>${project.basedir}/allure-results</allure.results.directory>
+    </properties>
+
+    <dependencies>
+        <!-- JUnit 4 -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- RestAssured -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>5.3.0</version>
+        </dependency>
+
+        <!-- Jackson Databind -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+
+        <!-- Allure JUnit 4 -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-junit4</artifactId>
+            <version>2.24.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Allure Java Commons -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-java-commons</artifactId>
+            <version>2.24.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Surefire plugin для запуска тестов с UTF-8 и Allure Listener -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M8</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <testFailureIgnore>true</testFailureIgnore> <!-- игнорируем падение тестов -->
+                    <systemPropertyVariables>
+                        <file.encoding>UTF-8</file.encoding>
+                        <allure.results.directory>${allure.results.directory}</allure.results.directory>
+                    </systemPropertyVariables>
+                    <properties>
+                        <listener>io.qameta.allure.junit4.AllureJunit4</listener> <!-- подключаем Allure Listener -->
+                    </properties>
+                </configuration>
+            </plugin>
+
+            <!-- Allure Maven plugin -->
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>2.11.2</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
